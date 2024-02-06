@@ -63,14 +63,18 @@ def previous():
 def play():
     global playing
 
-    for msg in selected_midi.play():
-        midi.output_port.send(msg)
+    try:
+        for msg in selected_midi.play():
+            midi.output_port.send(msg)
 
-        if playing == False:
-            break
+            if playing == False:
+                break
 
-    playing = False
-    update_display()
+        playing = False
+        update_display()
+    except:
+        playing = False
+        display.print('nomd')
 
 def stop():
     global playing
