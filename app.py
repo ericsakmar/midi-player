@@ -105,16 +105,15 @@ def togglePlay():
 
 # listens for midi input
 def input():
-    while True:
-        for msg in midi.input_port.iter_pending():
-            if msg.type == 'program_change' and msg.channel == MIDI_IN_CHANNEL:
-                select(msg.program)
+    for msg in midi.input_port:
+        if msg.type == 'program_change' and msg.channel == MIDI_IN_CHANNEL:
+            select(msg.program)
 
-            if msg.type == 'start':
-                start()
+        if msg.type == 'start':
+            start()
 
-            if msg.type == 'stop':
-                stop()
+        if msg.type == 'stop':
+            stop()
 
 
 # manual overrides
