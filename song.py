@@ -1,6 +1,5 @@
 import glob
 import os
-import time
 from mido import MidiFile
 
 class Song:
@@ -26,11 +25,8 @@ class Song:
 
     def open_midi(self):
         if self.file_path:
-            start = time.perf_counter()
             midi_file = MidiFile(self.file_path)
             first = next(midi_file.play()) # this forces more stuff to load so it plays right away
-            end = time.perf_counter()
-            print(f"Downloaded the tutorial in {end - start:0.4f} seconds")
             return midi_file
 
         return None

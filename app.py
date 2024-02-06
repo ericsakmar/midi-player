@@ -1,11 +1,11 @@
 import os
 import threading
 import RPi.GPIO as GPIO
-import mido
 import glob
 import time
 from song import Song, Songs
 from display import Display
+from midi import Midi
 
 # set-up guide: https://learn.adafruit.com/matrix-7-segment-led-backpack-with-the-raspberry-pi/configuring-your-pi-for-i2c
 # https://www.raspberrypi.com/documentation/computers/raspberry-pi.html
@@ -21,17 +21,10 @@ GPIO.setup(NEXT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PREV_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PLAY_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-
-
-# sets up midi
-# TODO wrap in try/catch??
-midi_ports = mido.get_output_names() # current usb2midi can use either
-midi_in_name = [p for p in midi_ports if 'MIDI 1' in p][0]
-midi_out_name = [p for p in midi_ports if 'MIDI 2' in p][0]
-midi_output_port = mido.open_output(midi_out_name)
 MIDI_IN_CHANNEL = 9 # it's actually 10
 
 # globals
+midi = Midi()
 display = Display()
 songs = Songs()
 selected_index = 0
@@ -71,7 +64,7 @@ def play():
     global playing
 
     for msg in selected_midi.play():
-        midi_output_port.send(msg)
+        midi.output_port.send(msg)
 
         if playing == False:
             break
@@ -110,20 +103,18 @@ def togglePlay():
         playThread.start()
 
 
-# listens for input
+# listens for midi input
 def input():
-    with mido.open_input(midi_in_name) as port:
-        while True:
-            # midi messages
-            for msg in port.iter_pending():
-                if msg.type == 'program_change' and msg.channel == MIDI_IN_CHANNEL:
-                    select(msg.program)
+    while True:
+        for msg in midi.input_port.iter_pending():
+            if msg.type == 'program_change' and msg.channel == MIDI_IN_CHANNEL:
+                select(msg.program)
 
-                if msg.type == 'start':
-                    start()
+            if msg.type == 'start':
+                start()
 
-                if msg.type == 'stop':
-                    stop()
+            if msg.type == 'stop':
+                stop()
 
 
 # manual overrides
@@ -141,10 +132,6 @@ def buttons():
 
         time.sleep(0.2)
 
-
-# GPIO.add_event_detect(NEXT_PIN, GPIO.FALLING, callback=next, bouncetime=200)
-# GPIO.add_event_detect(PREV_PIN, GPIO.FALLING, callback=previous, bouncetime=200)
-# GPIO.add_event_detect(PLAY_PIN, GPIO.FALLING, callback=togglePlay, bouncetime=200)
 
 # main init
 select(0)
