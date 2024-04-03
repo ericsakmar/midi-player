@@ -3,6 +3,9 @@ import threading
 import RPi.GPIO as GPIO
 import glob
 import time
+from pygame import mixer
+import mido
+
 from song import Song, Songs
 from display import Display
 from midi import Midi
@@ -20,6 +23,9 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(NEXT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PREV_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PLAY_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+mixer.init()
+mixer.music.set_volume(1.0)
 
 MIDI_IN_CHANNEL = 9 # it's actually 10
 
@@ -63,29 +69,46 @@ def previous():
 def play():
     global playing
 
+    play_wav()
+    start_drums()
+    # play_midi()
+
+    playing = False
+    update_display()
+
+def play_wav():
+    wav = songs.get(selected_index).wav_file_path
+
+    if wav:
+        mixer.music.load(wav)
+        mixer.music.play()
+
+        while mixer.music.get_busy():
+            if playing == False:
+                mixer.music.stop()
+
+def play_midi():
+    global playing
+
     try:
         for msg in selected_midi.play():
             midi.output_port.send(msg)
 
             if playing == False:
                 break
-
-        playing = False
-        update_display()
     except:
-        playing = False
-        display.print('nomd')
+        # some don't have midi files, and that's ok
+        pass
 
 def stop():
     global playing
+
+    stop_drums()
     playing = False
     update_display()
 
 def start():
     global playing
-
-    if not selected_midi:
-        return
 
     playing = True
     update_display()
@@ -96,9 +119,6 @@ def start():
 def togglePlay():
     global playing
 
-    if not selected_midi:
-        return
-
     playing = not playing
     update_display()
 
@@ -106,6 +126,15 @@ def togglePlay():
         playThread = threading.Thread(target=play, daemon=True)
         playThread.start()
 
+def start_drums():
+    msg = mido.Message('start')
+    print('starting drums')
+    midi.output_port.send(msg)
+
+def stop_drums():
+    msg = mido.Message('stop')
+    midi.output_port.send(msg)
+    print('stopping drums')
 
 # listens for midi input
 def input():
@@ -113,12 +142,15 @@ def input():
         if msg.type == 'program_change' and msg.channel == MIDI_IN_CHANNEL:
             select(msg.program)
 
-        if msg.type == 'start':
+        elif msg.type == 'start':
             start()
 
-        if msg.type == 'stop':
+        elif msg.type == 'stop':
             stop()
 
+        else:
+            # pass the message on through
+            midi.output_port.send(msg)
 
 # manual overrides
 # i put this in its own thread because it GPIO.add_event_detect was acting funny with long load times
