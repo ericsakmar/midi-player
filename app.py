@@ -50,8 +50,9 @@ def select(index):
     global selected_midi
     global playing
 
+    stop()
     display.print('load')
-    playing = False
+
     selected_index = index
     selected_midi = songs.get(index).open_midi()
     update_display()
@@ -69,12 +70,14 @@ def previous():
 def play():
     global playing
 
+    playing = True
+    update_display()
+
     play_wav()
     start_drums()
-    # play_midi()
 
-    playing = False
-    update_display()
+    # we'll bring this back later
+    # play_midi()
 
 def play_wav():
     wav = songs.get(selected_index).wav_file_path
@@ -108,23 +111,15 @@ def stop():
     update_display()
 
 def start():
-    global playing
-
-    playing = True
-    update_display()
-
     playThread = threading.Thread(target=play, daemon=True)
     playThread.start()
 
 def togglePlay():
-    global playing
-
-    playing = not playing
-    update_display()
-
-    if playing:
+    if not playing:
         playThread = threading.Thread(target=play, daemon=True)
         playThread.start()
+    else:
+        stop()
 
 def start_drums():
     msg = mido.Message('start')
