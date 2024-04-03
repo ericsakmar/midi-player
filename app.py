@@ -123,13 +123,11 @@ def togglePlay():
 
 def start_drums():
     msg = mido.Message('start')
-    print('starting drums')
     midi.output_port.send(msg)
 
 def stop_drums():
     msg = mido.Message('stop')
     midi.output_port.send(msg)
-    print('stopping drums')
 
 # listens for midi input
 def input():
