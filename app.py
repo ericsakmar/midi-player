@@ -25,7 +25,7 @@ GPIO.setup(PREV_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PLAY_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 mixer.init()
-mixer.music.set_volume(1.0)
+mixer.music.set_volume(0.5)
 
 MIDI_IN_CHANNEL = 9 # it's actually 10
 
