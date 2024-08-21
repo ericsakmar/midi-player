@@ -20,7 +20,6 @@ class Midi:
             logging.warning("Unable to connect to MIDI input")
             self.input_port = []
 
-
     def close(self):
         self.output_port.close()
         self.input_port.close()
