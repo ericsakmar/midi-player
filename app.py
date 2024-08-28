@@ -24,10 +24,15 @@ GPIO.setup(NEXT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PREV_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(PLAY_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+mixer.pre_init(buffer=2048)
 mixer.init()
 mixer.music.set_volume(0.5)
 
-MIDI_IN_CHANNEL = 9 # it's actually 10
+MIDI_IN_CHANNEL = 9 # it's actually 10, this is the channel for the pi itself (selecting songs, etc)
+DRUM_MACHINE_CHANNEL = 10 # actually 11, this is the Lofi's PROJECT CHANNEL
+SONG_PLAYBACK_CC = 1
+SONG_PLAYBACK_START = 127
+SONG_PLAYBACK_STOP = 0
 
 # globals
 midi = Midi()
@@ -79,6 +84,7 @@ def play():
     # we'll bring this back later
     # play_midi()
 
+# synchronous, returns when the wav is over
 def play_wav():
     wav = songs.get(selected_index).wav_file_path
 
@@ -122,12 +128,37 @@ def togglePlay():
         stop()
 
 def start_drums():
-    msg = mido.Message('start')
+    # msg = mido.Message('start')
+    msg = mido.Message('control_change',
+                       channel=DRUM_MACHINE_CHANNEL,
+                       control=SONG_PLAYBACK_CC,
+                       value=SONG_PLAYBACK_START
+                       )
     midi.output_port.send(msg)
 
 def stop_drums():
-    msg = mido.Message('stop')
+    # msg = mido.Message('stop')
+    msg = mido.Message('control_change',
+                       channel=DRUM_MACHINE_CHANNEL,
+                       control=SONG_PLAYBACK_CC,
+                       value=SONG_PLAYBACK_START
+                       )
     midi.output_port.send(msg)
+
+def is_start(msg):
+    # old
+    # return msg.type == 'start'
+
+    # lofi-xt 12 style
+    return msg.type == 'control_change' and msg.channel == DRUM_MACHINE_CHANNEL and msg.control == SONG_PLAYBACK_CC and msg.value == SONG_PLAYBACK_START
+
+def is_stop(msg):
+    # old
+    # return msg.type == 'stop'
+
+    # lofi-xt 12 style
+    return msg.type == 'control_change' and msg.channel == DRUM_MACHINE_CHANNEL and msg.control == SONG_PLAYBACK_CC and msg.value == SONG_PLAYBACK_STOP
+
 
 # listens for midi input
 def input():
@@ -135,10 +166,10 @@ def input():
         if msg.type == 'program_change' and msg.channel == MIDI_IN_CHANNEL:
             select(msg.program)
 
-        elif msg.type == 'start':
+        elif is_start(msg):
             start()
 
-        elif msg.type == 'stop':
+        elif is_stop(msg):
             stop()
 
         else:
